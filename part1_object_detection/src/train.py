@@ -5,8 +5,8 @@ from model import SimpleDetector
 from loss import DetectionLoss
 
 DEVICE = "cpu"
-EPOCHS = 50  # Increased from 20
-BATCH_SIZE = 4  # Reduced to allow more updates
+EPOCHS = 150  # More epochs
+BATCH_SIZE = 4
 
 def collate_fn(batch):
     """Custom collate to handle varying number of boxes per image"""

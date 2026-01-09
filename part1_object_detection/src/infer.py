@@ -10,12 +10,8 @@ model = SimpleDetector()
 model.load_state_dict(torch.load("detector.pth"))
 model.eval()
 
-# Load a random validation image
-import random
-val_dir = "../../datasets/coco5/images/val"
-random_img = random.choice(os.listdir(val_dir))
-img = cv2.imread(os.path.join(val_dir, random_img))
-print(f"Testing on: {random_img}")
+# Load specific image with a dog
+img = cv2.imread("../../datasets/coco5/images/train/000000000074.jpg")
 h, w, _ = img.shape
 
 inp = cv2.resize(img, (224, 224))
