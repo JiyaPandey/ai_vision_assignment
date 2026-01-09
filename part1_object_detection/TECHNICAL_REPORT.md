@@ -45,7 +45,7 @@ Built a lightweight CNN-based detector optimized for:
 
 ### 2.2 Architecture Details
 
-**Network: ImprovedDetector**
+**Network: SimpleDetector**
 
 ```
 Input: RGB Image (224x224x3)

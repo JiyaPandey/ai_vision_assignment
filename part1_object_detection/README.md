@@ -85,12 +85,10 @@ Epoch 100/100| Loss: ~145.00 (estimated)
 cd part1_object_detection/src
 python train.py
 ```
-*Note: This now uses the ImprovedDetector and ImprovedDetectionLoss.*
 
-### Inference & Visualization
+### Inference
 ```bash
-# Run inference on validation set and generate GIF
-python visualize_results.py
+python infer.py
 ```
 
 ### Evaluation
