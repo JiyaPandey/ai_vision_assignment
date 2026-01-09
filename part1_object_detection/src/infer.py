@@ -2,16 +2,23 @@ import cv2
 import os
 import random
 import torch
-from model import SimpleDetector
+from model import ImprovedDetector
 
 CLASSES = ["person", "car", "dog", "bottle", "chair"]
 
-model = SimpleDetector()
-model.load_state_dict(torch.load("detector.pth"))
+model = ImprovedDetector()
+model.load_state_dict(torch.load("detector_improved_best.pth"))
 model.eval()
 
-# Load specific image with a dog
-img = cv2.imread("../../datasets/coco5/images/train/000000000074.jpg")
+# Pick a random validation image
+val_dir = os.path.join(os.path.dirname(__file__), "../../datasets/coco5/images/val")
+val_images = [f for f in os.listdir(val_dir) if f.endswith('.jpg')]
+random_img = random.choice(val_images)
+
+img_path = os.path.join(val_dir, random_img)
+print(f"Testing on: {random_img}")
+
+img = cv2.imread(img_path)
 h, w, _ = img.shape
 
 inp = cv2.resize(img, (224, 224))
