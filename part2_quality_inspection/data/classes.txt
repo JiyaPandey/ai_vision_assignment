@@ -1,0 +1,3 @@
+missing_component
+misaligned_component
+solder_defect
