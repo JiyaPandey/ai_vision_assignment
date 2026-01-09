@@ -1,10 +1,13 @@
+import torch
 import torch.nn as nn
 
 class DetectionLoss(nn.Module):
     def __init__(self):
         super().__init__()
         self.box_loss = nn.MSELoss()
-        self.cls_loss = nn.CrossEntropyLoss()
+        # Class weights to handle imbalance: person=205, car=26, dog=8, bottle=17, chair=20
+        class_weights = torch.tensor([1.0, 7.88, 25.63, 12.06, 10.25])  # inversely proportional
+        self.cls_loss = nn.CrossEntropyLoss(weight=class_weights)
 
     def forward(self, preds, targets):
         # preds: [B, 4 + C]

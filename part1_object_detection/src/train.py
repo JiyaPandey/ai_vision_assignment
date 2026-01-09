@@ -5,8 +5,8 @@ from model import SimpleDetector
 from loss import DetectionLoss
 
 DEVICE = "cpu"
-EPOCHS = 20
-BATCH_SIZE = 8
+EPOCHS = 50  # Increased from 20
+BATCH_SIZE = 4  # Reduced to allow more updates
 
 def collate_fn(batch):
     """Custom collate to handle varying number of boxes per image"""
@@ -14,7 +14,7 @@ def collate_fn(batch):
     imgs = torch.stack(imgs, 0)
     return imgs, boxes
 
-dataset = Coco5Dataset("../../datasets/coco5", split="train")
+dataset = Coco5Dataset("../../datasets/coco5", split="train", augment=True)
 loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=collate_fn)
 
 model = SimpleDetector().to(DEVICE)

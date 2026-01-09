@@ -16,6 +16,7 @@ class SimpleDetector(nn.Module):
             nn.Flatten(),
             nn.Linear(64 * 28 * 28, 256),
             nn.ReLU(),
+            nn.Dropout(0.3),  # Add dropout for regularization
             nn.Linear(256, 4 + num_classes)  # box + class logits
         )
 

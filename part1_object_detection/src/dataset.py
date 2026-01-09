@@ -6,15 +6,17 @@ import numpy as np
 
 
 class Coco5Dataset(Dataset):
-    def __init__(self, root_dir, split="train", img_size=224):
+    def __init__(self, root_dir, split="train", img_size=224, augment=False):
         """
         root_dir: path to datasets/coco5
         split: 'train' or 'val'
         img_size: image resize size
+        augment: whether to apply data augmentation
         """
         self.img_dir = os.path.join(root_dir, "images", split)
         self.lbl_dir = os.path.join(root_dir, "labels", split)
         self.img_size = img_size
+        self.augment = augment
 
         self.images = sorted(os.listdir(self.img_dir))
 
@@ -30,6 +32,16 @@ class Coco5Dataset(Dataset):
         img = cv2.imread(img_path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = cv2.resize(img, (self.img_size, self.img_size))
+        
+        # Simple augmentation for training
+        if self.augment:
+            # Random brightness
+            if np.random.rand() > 0.5:
+                img = np.clip(img * np.random.uniform(0.7, 1.3), 0, 255).astype(np.uint8)
+            # Random horizontal flip
+            if np.random.rand() > 0.5:
+                img = cv2.flip(img, 1)
+        
         img = img / 255.0  # normalize to 0–1
 
         # Convert to tensor (C, H, W)
