@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+*.egg-info/
+
+# Datasets
+datasets/coco128/
+datasets/coco5/images/
+datasets/yolov5/
+*.jpg
+*.png
+*.jpeg
+
+# Models (if large)
+*.pth
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
