@@ -9,8 +9,8 @@ model = SimpleDetector()
 model.load_state_dict(torch.load("detector.pth"))
 model.eval()
 
-img = cv2.imread("../../datasets/coco5/images/val/" +
-                  os.listdir("../../datasets/coco5/images/val")[0])
+# Load image with a dog
+img = cv2.imread("../../datasets/coco5/images/train/000000000074.jpg")
 h, w, _ = img.shape
 
 inp = cv2.resize(img, (224, 224))
@@ -34,4 +34,5 @@ cv2.putText(img, CLASSES[cls], (x1, y1 - 5),
             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
 
 cv2.imwrite("output.jpg", img)
-print("✅ Output saved as output.jpg")
+print(f"✅ Output saved as output.jpg")
+print(f"🎯 Detected: {CLASSES[cls]}")
