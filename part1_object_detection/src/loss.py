@@ -1,10 +1,46 @@
 import torch
 import torch.nn as nn
 
-class DetectionLoss(nn.Module):
+def compute_iou_loss(pred_boxes, target_boxes):
+    """
+    Compute IoU loss for bounding boxes
+    pred_boxes: [B, 4] (x_center, y_center, width, height) - normalized
+    target_boxes: [B, 4] (x_center, y_center, width, height) - normalized
+    """
+    # Convert to x1, y1, x2, y2
+    pred_x1 = pred_boxes[:, 0] - pred_boxes[:, 2] / 2
+    pred_y1 = pred_boxes[:, 1] - pred_boxes[:, 3] / 2
+    pred_x2 = pred_boxes[:, 0] + pred_boxes[:, 2] / 2
+    pred_y2 = pred_boxes[:, 1] + pred_boxes[:, 3] / 2
+    
+    target_x1 = target_boxes[:, 0] - target_boxes[:, 2] / 2
+    target_y1 = target_boxes[:, 1] - target_boxes[:, 3] / 2
+    target_x2 = target_boxes[:, 0] + target_boxes[:, 2] / 2
+    target_y2 = target_boxes[:, 1] + target_boxes[:, 3] / 2
+    
+    # Intersection
+    inter_x1 = torch.max(pred_x1, target_x1)
+    inter_y1 = torch.max(pred_y1, target_y1)
+    inter_x2 = torch.min(pred_x2, target_x2)
+    inter_y2 = torch.min(pred_y2, target_y2)
+    
+    inter_area = torch.clamp(inter_x2 - inter_x1, min=0) * torch.clamp(inter_y2 - inter_y1, min=0)
+    
+    # Union
+    pred_area = (pred_x2 - pred_x1) * (pred_y2 - pred_y1)
+    target_area = (target_x2 - target_x1) * (target_y2 - target_y1)
+    union_area = pred_area + target_area - inter_area
+    
+    # IoU
+    iou = inter_area / (union_area + 1e-6)
+    
+    # IoU loss = 1 - IoU
+    return 1.0 - iou.mean()
+
+
+class ImprovedDetectionLoss(nn.Module):
     def __init__(self):
         super().__init__()
-        self.box_loss = nn.MSELoss()
         # Class weights to handle imbalance: person=205, car=26, dog=8, bottle=17, chair=20
         class_weights = torch.tensor([1.0, 7.88, 25.63, 12.06, 10.25])
         self.cls_loss = nn.CrossEntropyLoss(weight=class_weights)
@@ -19,8 +55,30 @@ class DetectionLoss(nn.Module):
         box_gt = targets[:, 1:]
         cls_gt = targets[:, 0].long()
 
-        loss_box = self.box_loss(box_pred, box_gt)
+        # IoU loss for bounding boxes
+        loss_box = compute_iou_loss(box_pred, box_gt)
+        
+        # Classification loss
         loss_cls = self.cls_loss(cls_pred, cls_gt)
 
         # Balance: emphasize bbox learning
+        return 5.0 * loss_box + loss_cls
+
+    """Original detection loss - kept for compatibility"""
+    def __init__(self):
+        super().__init__()
+        self.box_loss = nn.MSELoss()
+        class_weights = torch.tensor([1.0, 7.88, 25.63, 12.06, 10.25])
+        self.cls_loss = nn.CrossEntropyLoss(weight=class_weights)
+
+    def forward(self, preds, targets):
+        box_pred = preds[:, :4]
+        cls_pred = preds[:, 4:]
+
+        box_gt = targets[:, 1:]
+        cls_gt = targets[:, 0].long()
+
+        loss_box = self.box_loss(box_pred, box_gt)
+        loss_cls = self.cls_loss(cls_pred, cls_gt)
+
         return 3.0 * loss_box + loss_cls

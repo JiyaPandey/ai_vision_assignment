@@ -45,41 +45,39 @@ Built a lightweight CNN-based detector optimized for:
 
 ### 2.2 Architecture Details
 
-**Network: SimpleDetector**
+**Network: ImprovedDetector**
 
 ```
 Input: RGB Image (224x224x3)
 │
-├─ Convolutional Backbone:
-│  ├─ Conv2D(3→16, 3x3) + ReLU + MaxPool(2x2)
-│  ├─ Conv2D(16→32, 3x3) + ReLU + MaxPool(2x2)
-│  └─ Conv2D(32→64, 3x3) + ReLU + MaxPool(2x2)
+├─ Convolutional Backbone (4 Blocks with Batch Norm):
+│  ├─ Block 1: [Conv32 + BN + ReLU] x 2 + MaxPool
+│  ├─ Block 2: [Conv64 + BN + ReLU] x 2 + MaxPool
+│  ├─ Block 3: [Conv128 + BN + ReLU] x 2 + MaxPool
+│  └─ Block 4: [Conv256 + BN + ReLU] x 2 + MaxPool
 │
-├─ Adaptive Average Pooling → 28x28
+├─ Adaptive Average Pooling → 14x14
 │
 └─ Fully Connected Head:
    ├─ Flatten
-   ├─ Linear(64×28×28 → 256)
-   ├─ ReLU
-   ├─ Dropout(0.3)
+   ├─ Linear(256×14×14 → 512) + ReLU + Dropout(0.5)
+   ├─ Linear(512 → 256) + ReLU + Dropout(0.3)
    └─ Linear(256 → 9)
       ├─ [0:4] → Bounding Box (x, y, w, h)
       └─ [4:9] → Class Logits (5 classes)
 ```
 
-**Total Parameters**: 12,871,209 (12.87M)  
-**Trainable Parameters**: 12,871,209  
-**Model Size**: 49.10 MB
+**Total Parameters**: ~15M (Estimated)
+**Model Size**: ~60 MB
 
 ### 2.3 Design Choices
 
 | Decision | Rationale |
 |----------|-----------|
-| **3 Conv Layers** | Balance between feature extraction and speed |
-| **MaxPooling** | Spatial dimension reduction for efficiency |
-| **Small FC Layer (256)** | Prevent overfitting on small dataset |
-| **Dropout (0.3)** | Regularization for small dataset |
-| **Direct Regression** | Simpler than anchor-based methods for single object |
+| **Deeper Backbone** | 4 blocks instead of 3 for better feature extraction |
+| **Batch Normalization** | Stabilizes training and accelerates convergence |
+| **Dropout (0.5/0.3)** | Stronger regularization to prevent overfitting |
+| **IoU Loss** | Directly optimizes the evaluation metric (Intersection over Union) |
 
 ---
 
@@ -87,31 +85,16 @@ Input: RGB Image (224x224x3)
 
 ### 3.1 Loss Function Design
 
-**Multi-Task Loss = Classification Loss + Bounding Box Loss**
+**Multi-Task Loss = 5.0 × IoU Loss + Classification Loss**
 
-#### Evolution of Loss Functions:
-
-1. **Initial Attempt** (Epochs 1-20):
-   ```python
-   Loss = MSE(bbox) + CrossEntropy(class)
-   ```
-   **Problem**: Poor bounding box localization
-
-2. **Class Balancing** (Epochs 21-50):
-   ```python
-   class_weights = [1.0, 7.88, 25.63, 12.06, 10.25]
-   Loss = MSE(bbox) + WeightedCrossEntropy(class)
-   ```
-   **Problem**: Still poor bbox accuracy, but better class distribution
-
-3. **Final Approach** (Epochs 51-100):
-   ```python
-   Loss = 10.0 × IoU_Loss(bbox) + WeightedCrossEntropy(class)
-   ```
-   **Benefits**: 
-   - IoU loss directly optimizes detection metric
-   - Better bbox localization
-   - 10x weight balances bbox vs classification importance
+#### Final Approach:
+```python
+Loss = 5.0 * (1 - IoU) + WeightedCrossEntropy(class)
+```
+**Benefits**:
+- **IoU Loss**: Directly penalizes poor overlap, unlike MSE which treats coordinates independently.
+- **Weighted CrossEntropy**: Handles class imbalance (Person: 74%).
+- **Balance Factor (5.0)**: Prioritizes localization accuracy.
 
 ### 3.2 Training Configuration
 
