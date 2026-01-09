@@ -1,144 +1,100 @@
-# Part 1: Custom Object Detector from Scratch
+# Part 1: Custom Object Detection from Scratch
 
 ## Overview
-Complete object detection pipeline trained **from scratch** (no pre-trained weights) on a custom 5-class COCO subset.
+Complete object detection pipeline trained **from scratch** (no pre-trained weights) on Pascal VOC 2007 dataset.
 
 ## Dataset
-- **Source**: COCO-style 5-class subset
-- **Classes**: person, car, dog, bottle, chair (5 classes)
-- **Format**: YOLO format labels (normalized coordinates)
-- **Split**: 80 total images
-  - Training: 64 images (80%)
-  - Validation: 16 images (20%)
+- **Source**: Pascal VOC 2007
+- **Classes**: person, car, dog, cat, bicycle (5 classes)
+- **Format**: XML annotations converted to normalized bounding boxes
+- **Split**: 600 total images
+  - Training: 480 images (80%)
+  - Validation: 120 images (20%)
 
 ## Model Architecture
 - **Type**: Custom CNN built from scratch (no pretrained weights)
-- **Name**: SimpleDetector
+- **Name**: ImprovedDetector
 - **Architecture**: 
   - Convolutional backbone: 3 conv layers (16→32→64 channels)
+  - Adaptive pooling
   - Fully connected head with dropout (0.3)
   - Direct bounding box regression + classification
 - **Output**: 9 values per image
   - 4 for bounding box (x_center, y_center, width, height) - normalized
   - 5 for class probabilities
-- **Parameters**: ~12.7 million
-- **Model Size**: 50 MB
+- **Parameters**: ~3 million
 
 ## Training Details
 - **Device**: CPU
-- **Epochs**: 100
-- **Batch Size**: 4
-- **Optimizer**: Adam (lr=1e-3)
+- **Epochs**: 100 (early stopping at epoch 50)
+- **Best Epoch**: 35
+- **Batch Size**: 16
+- **Optimizer**: Adam (lr=1e-3) with cosine annealing
 - **Loss Function**: 
-  - IoU Loss (bounding box regression)
-  - Weighted CrossEntropy (classification - handles class imbalance)
-  - Combined: `10.0 × IoU_Loss + WeightedCrossEntropy`
+  - MSE (bounding box regression)
+  - Weighted CrossEntropy (classification)
+  - Combined: `3.0 × MSE + WeightedCrossEntropy`
 - **Data Augmentation**:
   - Random brightness (0.7-1.3×)
   - Random horizontal flip (50%)
   - Resize to 224×224
+- **Early Stopping**: Patience = 15 epochs
 
-## Training Progress
-```
-Epoch 1/100  | Loss: 190.16
-Epoch 25/100 | Loss: 158.75
-Epoch 50/100 | Loss: 157.23
-Epoch 75/100 | Loss: 149.96
-Epoch 100/100| Loss: ~145.00 (estimated)
-```
-**Observation**: Steady loss decrease indicates good convergence.
-
-## Evaluation Metrics
-
-### Performance
-- **mAP@0.5**: See TECHNICAL_REPORT.md for detailed metrics
-- **Inference Speed**: 
-  - FPS: See measure_fps.py output
-  - Average Time: ~XX ms per image (CPU)
-- **Model Size**: 50 MB
-
-### Classification Accuracy
-- Validation Set: XX/16 images correctly classified
-- Handles class imbalance via weighted loss
-
-## Key Features
-1. ✅ **From Scratch Training**: No pre-trained weights
-2. ✅ **Class Imbalance Handling**: Weighted loss (person:205, car:26, dog:8, bottle:17, chair:20)
-3. ✅ **IoU Loss**: Better bounding box localization than MSE
-4. ✅ **Data Augmentation**: Improves generalization
-5. ✅ **Dropout Regularization**: Prevents overfitting on small dataset
-
-## Files
-- `src/model.py` - SimpleDetector CNN architecture
-- `src/loss.py` - IoU loss + weighted CrossEntropy
-- `src/train.py` - Training loop with augmentation
-- `src/infer.py` - Inference demo
-- `src/dataset.py` - Custom dataset loader
-- `src/evaluate_map.py` - mAP evaluation script
-- `src/measure_fps.py` - FPS/speed benchmarking
-- `TECHNICAL_REPORT.md` - Comprehensive technical report
+## Performance Results
+- **Best Validation IoU**: 0.278
+- **Best Validation Accuracy**: 29.2%
+- **Training Time**: ~50 minutes (CPU only)
 
 ## How to Run
 
-### Training
+### Train the Model
 ```bash
-cd part1_object_detection/src
-python train.py
+cd part1_object_detection
+source ../venv/bin/activate
+python src/train_voc.py
 ```
 
-### Inference
+### Run Inference
 ```bash
-python infer.py
+cd part1_object_detection
+source ../venv/bin/activate
+python src/infer_voc.py
 ```
 
-### Evaluation
-```bash
-# Measure mAP@0.5
-python evaluate_map.py
+Output saved as `output_voc.jpg` with bounding box and class label.
 
-# Measure inference speed (FPS)
-python measure_fps.py
+## Project Structure
+```
+part1_object_detection/
+├── src/
+│   ├── voc_dataset.py      # Pascal VOC dataset loader
+│   ├── model.py            # ImprovedDetector architecture
+│   ├── loss.py             # Combined loss function
+│   ├── train_voc.py        # Training script
+│   └── infer_voc.py        # Inference script
+├── create_voc_split.py     # Creates train/val split
+├── detector_voc_best.pth   # Best trained model weights
+└── README.md
 ```
 
-## Results Summary
+## Key Challenges
 
-### Strengths
-- ✅ Real-time inference on CPU
-- ✅ Small model size (50MB)
-- ✅ Trains from scratch without pre-trained weights
-- ✅ Handles class imbalance effectively
+1. **Training from Scratch**: Without pre-trained weights, the model requires more data and longer training to achieve reasonable performance.
 
-### Limitations
-- ❌ Single object detection only
-- ❌ Small dataset (80 images)
-- ❌ Lower accuracy vs pre-trained models
-- ❌ Bbox localization could be more precise
+2. **Small Dataset Effect**: Even with 480 training images, performance is limited compared to models using transfer learning.
 
-## Trade-offs: Accuracy vs Speed
+3. **Class Imbalance**: Pascal VOC has varying instance counts per class, requiring weighted loss.
 
-| Aspect | Choice | Accuracy Impact | Speed Impact |
-|--------|--------|----------------|--------------|
-| Backbone | Shallow (3 layers) | ⬇️ Lower | ⬆️ Faster |
-| Input Size | 224×224 | ⬇️ Lower | ⬆️ Faster |
-| Detection | Single object | ⬇️ Lower | ⬆️ Faster |
-| Training | From scratch | ⬇️ Lower | - |
+4. **Bounding Box Localization**: Single-object regression is challenging without anchor boxes or region proposals.
 
-**Philosophy**: Prioritize speed and simplicity for educational/edge deployment use cases.
+## Comparison with Part 2
 
-## Technical Report
+| Metric | Part 1 (From Scratch) | Part 2 (YOLOv8 Pretrained) |
+|--------|----------------------|---------------------------|
+| Dataset Size | 480 images | 50 images |
+| Training Approach | From scratch | Fine-tuning pretrained |
+| Validation Accuracy | 29.2% | 99.2% mAP@0.5 |
+| IoU | 0.278 | 0.99+ |
+| Training Time | 50 minutes | 16 minutes |
 
-For detailed analysis including:
-- Architecture design rationale
-- Training methodology evolution
-- Loss function comparisons
-- Augmentation strategies
-- Results analysis
-- Future improvements
-
-See **[TECHNICAL_REPORT.md](TECHNICAL_REPORT.md)**
-
-## References
-- YOLO (You Only Look Once) - Redmon et al.
-- Faster R-CNN - Ren et al.
-- IoU Loss - UnitBox
-- COCO Dataset - Lin et al.
+**Key Lesson**: Transfer learning (Part 2) dramatically outperforms training from scratch (Part 1) when dataset size is limited. Pre-trained weights provide better feature representations, enabling high accuracy even with minimal data.
