@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 5
+names: ['Ipad', 'backpack', 'hand', 'phone', 'wallet']
+
+roboflow:
+  workspace: robotic-lab-ggo2o
+  project: 5-class-dataset
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/robotic-lab-ggo2o/5-class-dataset/dataset/1
