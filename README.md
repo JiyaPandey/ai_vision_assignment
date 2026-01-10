@@ -1,4 +1,4 @@
-# AI Vision - Object Detection Model
+[Screencast from 01-10-2026 10:11:10 PM.webm](https://github.com/user-attachments/assets/adfdc699-417b-408b-a6f4-8456a818edd3)# AI Vision - Object Detection Model
 
 A computer vision project that detects everyday objects in real-time using a custom-trained deep learning model.
 
@@ -131,7 +131,9 @@ python detect_webcam.py
 
 ## 🎥 Demo Video
 
-*A demo video showcasing the model's real-time detection capabilities will be added here soon.*
+[Uploading Screencast from 01-10-2026 10:11:10 PM.webm…]()
+
+*A demo video showcasing the model's real-time detection capabilities.*
 
 **Stay tuned!** The video will demonstrate:
 - Object detection on various test images
