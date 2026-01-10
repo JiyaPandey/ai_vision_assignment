@@ -33,6 +33,10 @@ class YOLODataset(Dataset):
                 if os.path.exists(label_path):
                     self.samples.append(img_name)
         
+        # Normalize mean/std for ImageNet pretrained models
+        self.normalize_mean = np.array([0.485, 0.456, 0.406])
+        self.normalize_std = np.array([0.229, 0.224, 0.225])
+        
         print(f"Loaded {len(self.samples)} images with labels")
 
     def _parse_label(self, label_path):
@@ -106,8 +110,9 @@ class YOLODataset(Dataset):
         # Resize
         img = cv2.resize(img, (self.img_size, self.img_size))
         
-        # Normalize and convert to tensor
+        # Normalize with ImageNet statistics (for pretrained ResNet)
         img = img / 255.0
+        img = (img - self.normalize_mean) / self.normalize_std
         img = torch.tensor(img, dtype=torch.float32).permute(2, 0, 1)
         
         # Parse label

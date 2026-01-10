@@ -11,10 +11,10 @@ import os
 from tqdm import tqdm
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-EPOCHS = 150
-BATCH_SIZE = 16
-LEARNING_RATE = 5e-4  # Lower learning rate for better convergence
-PATIENCE = 25  # More patience
+EPOCHS = 200
+BATCH_SIZE = 8  # Reduced for 4GB VRAM
+LEARNING_RATE = 1e-4  # Lower LR for transfer learning
+PATIENCE = 30  # More patience
 
 # Dataset paths
 DATASET_ROOT = os.path.expanduser("~/ai_vision_assignment/part1_object_detection/5 class dataset.v1i.yolov8")
@@ -86,17 +86,29 @@ def main():
     train_dataset = YOLODataset(TRAIN_IMG_DIR, TRAIN_LABEL_DIR, augment=True)
     val_dataset = YOLODataset(VAL_IMG_DIR, VAL_LABEL_DIR, augment=False)
 
-    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
-    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2, pin_memory=True)
 
-    # Initialize model
-    model = ImprovedDetector(num_classes=5).to(DEVICE)
+    # Initialize model with pretrained weights
+    print("Loading pretrained ResNet18 backbone from ImageNet...")
+    model = ImprovedDetector(num_classes=5, pretrained=True).to(DEVICE)
     criterion = ImprovedDetectionLoss().to(DEVICE)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-3)  # AdamW with more regularization
+    
+    # Different learning rates for backbone vs detection head
+    backbone_params = list(model.features.parameters())
+    head_params = list(model.detection_head.parameters())
+    
+    optimizer = torch.optim.AdamW([
+        {'params': backbone_params, 'lr': LEARNING_RATE * 0.1},  # Lower LR for pretrained backbone
+        {'params': head_params, 'lr': LEARNING_RATE}  # Higher LR for detection head
+    ], weight_decay=1e-4)
     
     # Warmup + Cosine scheduler
-    warmup_epochs = 5
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS-warmup_epochs, eta_min=1e-6)
+    warmup_epochs = 10
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS-warmup_epochs, eta_min=1e-7)
+    
+    # Mixed precision training for memory efficiency
+    scaler = torch.cuda.amp.GradScaler() if DEVICE == "cuda" else None
 
     # Training loop
     best_val_iou = 0
@@ -108,19 +120,31 @@ def main():
     print(f"Classes: {train_dataset.class_names}")
     print(f"Train samples: {len(train_dataset)}, Val samples: {len(val_dataset)}")
     print("="*70)
-
-    for epoch in range(EPOCHS):
-        model.train()
-        total_loss = 0
-        num_batches = 0
-        
-        # Learning rate warmup
-        if epoch < warmup_epochs:
-            warmup_lr = LEARNING_RATE * (epoch + 1) / warmup_epochs
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = warmup_lr
-        
-        # Training
+ with mixed precision
+        pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{EPOCHS}")
+        for imgs, targets in pbar:
+            imgs = imgs.to(DEVICE, non_blocking=True)
+            targets = targets.to(DEVICE, non_blocking=True)
+            
+            optimizer.zero_grad()
+            
+            # Mixed precision training
+            if scaler is not None:
+                with torch.cuda.amp.autocast():
+                    preds = model(imgs)
+                    loss = criterion(preds, targets)
+                
+                scaler.scale(loss).backward()
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                preds = model(imgs)
+                loss = criterion(preds, targets)
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            # Training
         pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{EPOCHS}")
         for imgs, targets in pbar:
             imgs = imgs.to(DEVICE)

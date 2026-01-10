@@ -31,10 +31,15 @@ print(f"Testing on: {random_img}")
 img = cv2.imread(img_path)
 h, w, _ = img.shape
 
-# Prepare input
+# Prepare input with ImageNet normalization
 inp = cv2.resize(img, (224, 224))
 inp = cv2.cvtColor(inp, cv2.COLOR_BGR2RGB)
-inp = torch.tensor(inp / 255.0).permute(2, 0, 1).unsqueeze(0).float()
+inp = inp / 255.0
+# ImageNet normalization
+mean = [0.485, 0.456, 0.406]
+std = [0.229, 0.224, 0.225]
+inp = (inp - mean) / std
+inp = torch.tensor(inp, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0)
 
 # Run inference
 with torch.no_grad():

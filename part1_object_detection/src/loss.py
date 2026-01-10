@@ -38,13 +38,27 @@ def compute_iou_loss(pred_boxes, target_boxes):
     return 1.0 - iou.mean()
 
 
+class FocalLoss(nn.Module):
+    """Focal Loss for handling class imbalance"""
+    def __init__(self, alpha=None, gamma=2.0):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+    
+    def forward(self, inputs, targets):
+        ce_loss = F.cross_entropy(inputs, targets, reduction='none', weight=self.alpha)
+        pt = torch.exp(-ce_loss)
+        focal_loss = ((1 - pt) ** self.gamma * ce_loss).mean()
+        return focal_loss
+
+
 class ImprovedDetectionLoss(nn.Module):
     def __init__(self):
         super().__init__()
-        # Class weights for new dataset: Ipad, backpack, hand, phone, wallet
-        # Adjust based on dataset distribution (currently uniform)
-        class_weights = torch.tensor([1.0, 1.0, 1.0, 1.0, 1.0])
-        self.cls_loss = nn.CrossEntropyLoss(weight=class_weights)
+        # Higher weights for underrepresented classes (Ipad, backpack)
+        # Based on your results: Ipad=0%, backpack=0%, hand=80%, phone=43%, wallet=38%
+        class_weights = torch.tensor([3.0, 3.0, 1.0, 1.5, 1.5])  # Boost Ipad and backpack
+        self.focal_loss = FocalLoss(alpha=class_weights, gamma=2.0)
 
     def forward(self, preds, targets):
         # preds: [B, 4 + C]
@@ -59,11 +73,11 @@ class ImprovedDetectionLoss(nn.Module):
         # IoU loss for bounding boxes
         loss_box = compute_iou_loss(box_pred, box_gt)
         
-        # Classification loss
-        loss_cls = self.cls_loss(cls_pred, cls_gt)
+        # Focal loss for classification (handles imbalance better)
+        loss_cls = self.focal_loss(cls_pred, cls_gt)
 
-        # Balance: emphasize bbox learning
-        return 5.0 * loss_box + loss_cls
+        # Balance: emphasize both equally with focal loss
+        return 3.0 * loss_box + 2.0 * loss_cls
 
     """Original detection loss - kept for compatibility"""
     def __init__(self):
