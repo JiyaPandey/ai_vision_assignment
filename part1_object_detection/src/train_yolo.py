@@ -12,7 +12,8 @@ from tqdm import tqdm
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 EPOCHS = 200
-BATCH_SIZE = 8  # Reduced for 4GB VRAM
+BATCH_SIZE = 4  # Reduced from 16 to fit in 3.67GB GPU
+GRADIENT_ACCUMULATION_STEPS = 4  # Simulate batch size of 16
 LEARNING_RATE = 1e-4  # Lower LR for transfer learning
 PATIENCE = 30  # More patience
 
@@ -81,6 +82,17 @@ def validate(model, val_loader, criterion):
     return avg_loss, accuracy, avg_iou
 
 def main():
+    # Enable memory optimization
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        # Enable TF32 for better performance on Ampere GPUs
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+        # Set memory allocator configuration
+        os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+        print(f"GPU: {torch.cuda.get_device_name(0)}")
+        print(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+    
     # Load datasets
     print(f"Loading YOLO dataset from {DATASET_ROOT}")
     train_dataset = YOLODataset(TRAIN_IMG_DIR, TRAIN_LABEL_DIR, augment=True)
@@ -120,47 +132,57 @@ def main():
     print(f"Classes: {train_dataset.class_names}")
     print(f"Train samples: {len(train_dataset)}, Val samples: {len(val_dataset)}")
     print("="*70)
- with mixed precision
+ and mixed precision
         pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{EPOCHS}")
-        for imgs, targets in pbar:
+        optimizer.zero_grad()
+        
+        for batch_idx, (imgs, targets) in enumerate(pbar):
             imgs = imgs.to(DEVICE, non_blocking=True)
             targets = targets.to(DEVICE, non_blocking=True)
-            
-            optimizer.zero_grad()
             
             # Mixed precision training
             if scaler is not None:
                 with torch.cuda.amp.autocast():
                     preds = model(imgs)
                     loss = criterion(preds, targets)
+                    # Normalize loss for gradient accumulation
+                    loss = loss / GRADIENT_ACCUMULATION_STEPS
                 
                 scaler.scale(loss).backward()
-                scaler.unscale_(optimizer)
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-                scaler.step(optimizer)
-                scaler.update()
+                
+                # Update weights every GRADIENT_ACCUMULATION_STEPS
+                if (batch_idx + 1) % GRADIENT_ACCUMULATION_STEPS == 0 or (batch_idx + 1) == len(train_loader):
+                    scaler.unscale_(optimizer)
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                    scaler.step(optimizer)
+                    scaler.update()
+                    optimizer.zero_grad()
             else:
                 preds = model(imgs)
                 loss = criterion(preds, targets)
+                loss = loss / GRADIENT_ACCUMULATION_STEPS
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            # Training
-        pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{EPOCHS}")
-        for imgs, targets in pbar:
-            imgs = imgs.to(DEVICE)
-            targets = targets.to(DEVICE)
-            
+                
+                if (batch_idx + 1) % GRADIENT_ACCUMULATION_STEPS == 0 or (batch_idx + 1) == len(train_loader):
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                    optimizer.step()
+                
             preds = model(imgs)
             loss = criterion(preds, targets)
             
-            optimizer.zero_grad()
+            # Normalize loss for gradient accumulation
+            loss = loss / GRADIENT_ACCUMULATION_STEPS
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            optimizer.step()
             
-            total_loss += loss.item()
+            # Update weights every GRADIENT_ACCUMULATION_STEPS
+            if (batch_idx + 1) % GRADIENT_ACCUMULATION_STEPS == 0 or (batch_idx + 1) == len(train_loader):
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                optimizer.step()
+                optimizer.zero_grad()
+            
+            total_loss += loss.item() * GRADIENT_ACCUMULATION_STEPS
             num_batches += 1
-            pbar.set_postfix({'loss': f'{loss.item():.4f}'})
+            pbar.set_postfix({'loss': f'{loss.item() * GRADIENT_ACCUMULATION_STEPS:.4f}'})
         
         avg_train_loss = total_loss / num_batches if num_batches > 0 else 0
         
