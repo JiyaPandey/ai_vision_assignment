@@ -106,13 +106,15 @@ def main():
     model = ImprovedDetector(num_classes=5, pretrained=True).to(DEVICE)
     criterion = ImprovedDetectionLoss().to(DEVICE)
     
-    # Different learning rates for backbone vs detection head
+    # Different learning rates for backbone vs detection heads
     backbone_params = list(model.features.parameters())
-    head_params = list(model.detection_head.parameters())
+    head_params = (list(model.shared_head.parameters()) + 
+                   list(model.bbox_head.parameters()) + 
+                   list(model.cls_head.parameters()))
     
     optimizer = torch.optim.AdamW([
         {'params': backbone_params, 'lr': LEARNING_RATE * 0.1},  # Lower LR for pretrained backbone
-        {'params': head_params, 'lr': LEARNING_RATE}  # Higher LR for detection head
+        {'params': head_params, 'lr': LEARNING_RATE}  # Higher LR for detection heads
     ], weight_decay=1e-4)
     
     # Warmup + Cosine scheduler
@@ -132,7 +134,19 @@ def main():
     print(f"Classes: {train_dataset.class_names}")
     print(f"Train samples: {len(train_dataset)}, Val samples: {len(val_dataset)}")
     print("="*70)
- and mixed precision
+
+    for epoch in range(EPOCHS):
+        model.train()
+        total_loss = 0
+        num_batches = 0
+        
+        # Learning rate warmup
+        if epoch < warmup_epochs:
+            warmup_lr = LEARNING_RATE * (epoch + 1) / warmup_epochs
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = warmup_lr
+        
+        # Training with gradient accumulation and mixed precision
         pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{EPOCHS}")
         optimizer.zero_grad()
         
@@ -166,19 +180,7 @@ def main():
                 if (batch_idx + 1) % GRADIENT_ACCUMULATION_STEPS == 0 or (batch_idx + 1) == len(train_loader):
                     torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
                     optimizer.step()
-                
-            preds = model(imgs)
-            loss = criterion(preds, targets)
-            
-            # Normalize loss for gradient accumulation
-            loss = loss / GRADIENT_ACCUMULATION_STEPS
-            loss.backward()
-            
-            # Update weights every GRADIENT_ACCUMULATION_STEPS
-            if (batch_idx + 1) % GRADIENT_ACCUMULATION_STEPS == 0 or (batch_idx + 1) == len(train_loader):
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-                optimizer.step()
-                optimizer.zero_grad()
+                    optimizer.zero_grad()
             
             total_loss += loss.item() * GRADIENT_ACCUMULATION_STEPS
             num_batches += 1

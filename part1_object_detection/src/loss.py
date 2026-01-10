@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 def compute_iou_loss(pred_boxes, target_boxes):
     """
@@ -44,9 +45,11 @@ class FocalLoss(nn.Module):
         super().__init__()
         self.alpha = alpha
         self.gamma = gamma
+        self.register_buffer('alpha_buffer', alpha if alpha is not None else torch.tensor([1.0]))
     
     def forward(self, inputs, targets):
-        ce_loss = F.cross_entropy(inputs, targets, reduction='none', weight=self.alpha)
+        alpha = self.alpha_buffer if self.alpha is not None else None
+        ce_loss = F.cross_entropy(inputs, targets, reduction='none', weight=alpha)
         pt = torch.exp(-ce_loss)
         focal_loss = ((1 - pt) ** self.gamma * ce_loss).mean()
         return focal_loss
@@ -55,9 +58,8 @@ class FocalLoss(nn.Module):
 class ImprovedDetectionLoss(nn.Module):
     def __init__(self):
         super().__init__()
-        # Higher weights for underrepresented classes (Ipad, backpack)
-        # Based on your results: Ipad=0%, backpack=0%, hand=80%, phone=43%, wallet=38%
-        class_weights = torch.tensor([3.0, 3.0, 1.0, 1.5, 1.5])  # Boost Ipad and backpack
+        # Class weights based on your data distribution
+        class_weights = torch.tensor([1.5, 1.5, 1.0, 1.2, 1.0])  
         self.focal_loss = FocalLoss(alpha=class_weights, gamma=2.0)
 
     def forward(self, preds, targets):
@@ -73,27 +75,10 @@ class ImprovedDetectionLoss(nn.Module):
         # IoU loss for bounding boxes
         loss_box = compute_iou_loss(box_pred, box_gt)
         
-        # Focal loss for classification (handles imbalance better)
+        # Focal loss for classification
         loss_cls = self.focal_loss(cls_pred, cls_gt)
 
-        # Balance: emphasize both equally with focal loss
-        return 3.0 * loss_box + 2.0 * loss_cls
+        # Much higher weight on bounding box to improve localization
+        # Classification is already good (98%), focus on bbox
+        return 10.0 * loss_box + 1.0 * loss_cls
 
-    """Original detection loss - kept for compatibility"""
-    def __init__(self):
-        super().__init__()
-        self.box_loss = nn.MSELoss()
-        class_weights = torch.tensor([1.0, 7.88, 25.63, 12.06, 10.25])
-        self.cls_loss = nn.CrossEntropyLoss(weight=class_weights)
-
-    def forward(self, preds, targets):
-        box_pred = preds[:, :4]
-        cls_pred = preds[:, 4:]
-
-        box_gt = targets[:, 1:]
-        cls_gt = targets[:, 0].long()
-
-        loss_box = self.box_loss(box_pred, box_gt)
-        loss_cls = self.cls_loss(cls_pred, cls_gt)
-
-        return 3.0 * loss_box + loss_cls
