@@ -7,8 +7,10 @@ from model import ImprovedDetector
 CLASSES = ['Ipad', 'backpack', 'hand', 'phone', 'wallet']
 
 # Load model
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = ImprovedDetector(num_classes=5)
-model.load_state_dict(torch.load("detector_yolo_best.pth"))
+model.load_state_dict(torch.load("detector_yolo_best.pth", map_location=device))
+model.to(device)
 model.eval()
 
 # Dataset paths
@@ -39,7 +41,7 @@ inp = inp / 255.0
 mean = [0.485, 0.456, 0.406]
 std = [0.229, 0.224, 0.225]
 inp = (inp - mean) / std
-inp = torch.tensor(inp, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0)
+inp = torch.tensor(inp, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0).to(device)
 
 # Run inference
 with torch.no_grad():
