@@ -29,14 +29,9 @@ The model can detect the following **5 object classes**:
 
 ## 🎥 Demo Video
 
-[Screencast from 01-10-2026 10:11:10 PM.webm](https://github.com/user-attachments/assets/ac5993c7-add4-40bb-a8f6-ce20cd3021f0)
+https://github.com/user-attachments/assets/c85e9d90-8e1b-4a58-b8d0-c1dcfc9b6e7c
 
-*A demo video showcasing the model's real-time detection capabilities.*
-
-**Stay tuned!** The video will demonstrate:
-- Object detection on various test images
-- Live webcam detection
-- Model performance and accuracy
+*A demo video showcasing the model's detection capabilities on test images with bounding boxes and class labels.*
 
 ---
 
