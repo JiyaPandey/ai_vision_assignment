@@ -6,7 +6,7 @@ A computer vision project that detects everyday objects in real-time using a cus
 
 ## 📖 Project Description
 
-This is an **object detection and computer vision model** that identifies and localizes common objects in images and live video streams. The model uses transfer learning with a **ResNet18 backbone** pre-trained on ImageNet, fine-tuned for custom object detection tasks.
+This is an **object detection and computer vision model** that identifies and localizes common objects in images and live video streams. The model uses transfer learning with a **ResNet18 backbone** for accurate and efficient detection.
 
 ### What Does This Project Do?
 
@@ -24,6 +24,28 @@ The model can detect the following **5 object classes**:
 3. **Hand** - Human hands
 4. **Phone** - Mobile phones and smartphones
 5. **Wallet** - Wallets and purses
+
+---
+
+## 🎥 Demo Video
+
+[Screencast from 01-10-2026 10:11:10 PM.webm](https://github.com/user-attachments/assets/ac5993c7-add4-40bb-a8f6-ce20cd3021f0)
+
+*A demo video showcasing the model's real-time detection capabilities.*
+
+**Stay tuned!** The video will demonstrate:
+- Object detection on various test images
+- Live webcam detection
+- Model performance and accuracy
+
+---
+
+## 📊 Model Performance
+
+- **Architecture:** ResNet18 backbone with custom detection heads
+- **Training Dataset:** Custom 5-class dataset (YOLO format)
+- **Image Size:** 224x224 pixels
+- **Transfer Learning:** Pre-trained on ImageNet
 
 ---
 
@@ -125,29 +147,7 @@ python detect_webcam.py
 
 ### Important Note About Hand Detection
 
-> **Note:** Hand detection may not always be accurate because the training dataset mostly contained American images with fair-skinned hands, which can affect generalization to other skin tones and hand variations. This is a known limitation of the current training data.
-
----
-
-## 🎥 Demo Video
-
-[Screencast from 01-10-2026 10:11:10 PM.webm](https://github.com/user-attachments/assets/ac5993c7-add4-40bb-a8f6-ce20cd3021f0)
-
-*A demo video showcasing the model's real-time detection capabilities.*
-
-**Stay tuned!** The video will demonstrate:
-- Object detection on various test images
-- Live webcam detection
-- Model performance and accuracy
-
----
-
-## 📊 Model Performance
-
-- **Architecture:** ResNet18 backbone with custom detection heads
-- **Training Dataset:** Custom 5-class dataset (YOLO format)
-- **Image Size:** 224x224 pixels
-- **Transfer Learning:** Pre-trained on ImageNet
+> **Note:** Hand detection may not always be accurate because the training dataset mostly contained American images with fair-skinned hands, which can affect generalization to other skin tones and lighting conditions.
 
 ---
 
@@ -177,6 +177,14 @@ part1_object_detection/
 
 ---
 
+## 🌟 Acknowledgments
+
+- **Pascal VOC Dataset** - For initial training concepts
+- **ResNet Architecture** - Pre-trained backbone for transfer learning
+- **PyTorch Community** - For excellent documentation and support
+
+---
+
 ## 👨‍💻 Author
 
 **Jiya Pandey**  
@@ -187,14 +195,6 @@ GitHub: [@JiyaPandey](https://github.com/JiyaPandey)
 ## 📝 License
 
 This project is for educational and demonstration purposes.
-
----
-
-## 🌟 Acknowledgments
-
-- **Pascal VOC Dataset** - For initial training concepts
-- **ResNet Architecture** - Pre-trained backbone for transfer learning
-- **PyTorch Community** - For excellent documentation and support
 
 ---
 
