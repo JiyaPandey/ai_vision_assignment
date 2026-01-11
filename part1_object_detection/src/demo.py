@@ -109,7 +109,7 @@ for idx, img_name in enumerate(selected_images, 1):
     print(f"  🎯 Detected: {CLASSES[cls]}")
     
     # Display image
-    cv2.imshow('YOLO Detection Demo', img)
+    cv2.imshow('Object Detection', img)
     
     # Wait for 3 seconds or until 'q' is pressed
     key = cv2.waitKey(3000)  # 3000 ms = 3 seconds

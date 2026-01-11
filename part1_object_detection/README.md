@@ -41,11 +41,47 @@ Complete object detection pipeline trained **from scratch** (no pre-trained weig
 - **Early Stopping**: Patience = 15 epochs
 
 ## Performance Results
+
+### Test Set Evaluation (50 images)
+- **Overall Accuracy**: 86.0%
+- **Mean IoU**: 0.688
+- **mAP@0.5**: 0.762
+- **Precision**: 0.956
+- **Recall**: 0.860
+- **F1 Score**: 0.905
+
+### Per-Class Metrics
+
+| Class | Accuracy | AP@0.5 | Precision | Recall | F1 Score |
+|-------|----------|--------|-----------|--------|----------|
+| Ipad | 100.0% | 1.000 | 1.000 | 1.000 | 1.000 |
+| backpack | 80.0% | 0.655 | 1.000 | 0.800 | 0.889 |
+| hand | 70.0% | 0.580 | 1.000 | 0.700 | 0.824 |
+| phone | 71.4% | 0.581 | 0.833 | 0.714 | 0.769 |
+| wallet | 100.0% | 0.994 | 0.929 | 1.000 | 0.963 |
+
+### Evaluation Metrics Explained
+- **Accuracy**: Percentage of correctly classified objects
+- **IoU (Intersection over Union)**: Measures bounding box overlap quality
+- **mAP@0.5**: Mean Average Precision at IoU threshold of 0.5
+- **Precision**: Ratio of correct detections among all detections
+- **Recall**: Ratio of detected objects among all ground truth objects
+- **F1 Score**: Harmonic mean of precision and recall
+
+### Training Details
 - **Best Validation IoU**: 0.278
 - **Best Validation Accuracy**: 29.2%
 - **Training Time**: ~50 minutes (CPU only)
 
 ## How to Run
+
+### Setup
+First, install dependencies:
+```bash
+cd ~/ai_vision_assignment
+source venv/bin/activate
+pip install -r requirements.txt
+```
 
 ### Train the Model
 ```bash
@@ -62,6 +98,15 @@ python src/infer_voc.py
 ```
 
 Output saved as `output_voc.jpg` with bounding box and class label.
+
+### Run Evaluation
+```bash
+cd part1_object_detection
+source ../venv/bin/activate
+python src/evaluate_yolo.py
+```
+
+Displays comprehensive metrics including accuracy, IoU, mAP, precision, recall, and F1 score.
 
 ## Project Structure
 ```

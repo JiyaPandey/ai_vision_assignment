@@ -83,7 +83,7 @@ venv\Scripts\activate
 #### 4. Install Dependencies
 
 ```bash
-pip install torch torchvision opencv-python numpy tqdm
+pip install -r requirements.txt
 ```
 
 ---
