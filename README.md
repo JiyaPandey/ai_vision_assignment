@@ -1,4 +1,4 @@
- AI Vision - Object Detection Model
+## AI Vision - Object Detection Model
 
 A computer vision project that detects everyday objects in real-time using a custom-trained deep learning model.
 
@@ -29,7 +29,7 @@ The model can detect the following **5 object classes**:
 
 ## 🎥 Demo Video
 
-[Screencast from 01-11-2026 02:41:13 PM.webm](https://github.com/user-attachments/assets/eabb8d9d-835a-4253-b287-dedc8d2d0fbe)#
+[Screencast from 01-11-2026 02:41:13 PM.webm](https://github.com/user-attachments/assets/e21e9653-ca47-4e09-8550-c4db62c7f147)
 
 *A demo video showcasing the model's detection capabilities on test images with bounding boxes and class labels.*
 
