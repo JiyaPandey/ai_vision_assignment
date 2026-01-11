@@ -29,7 +29,7 @@ The model can detect the following **5 object classes**:
 
 ## 🎥 Demo Video
 
-https://github.com/user-attachments/assets/c85e9d90-8e1b-4a58-b8d0-c1dcfc9b6e7c
+[Uploading Screencast from 01-11-2026 02:41:13 PM.webm…]()
 
 *A demo video showcasing the model's detection capabilities on test images with bounding boxes and class labels.*
 
