@@ -42,10 +42,40 @@ The model can detect the following **5 object classes**:
 
 ## 📊 Model Performance
 
-- **Architecture:** ResNet18 backbone with custom detection heads
+### Architecture
+- **Backbone:** ResNet18 with custom detection heads
 - **Training Dataset:** Custom 5-class dataset (YOLO format)
 - **Image Size:** 224x224 pixels
 - **Transfer Learning:** Pre-trained on ImageNet
+
+### Test Set Evaluation Metrics (50 test images)
+
+| Metric | Value |
+|--------|-------|
+| **Overall Accuracy** | 86.0% |
+| **Mean IoU** | 0.688 |
+| **mAP@0.5** | 0.762 |
+| **Precision** | 0.956 |
+| **Recall** | 0.860 |
+| **F1 Score** | 0.905 |
+
+### Per-Class Performance
+
+| Class | Accuracy | AP@0.5 | Precision | Recall | F1 Score |
+|-------|----------|--------|-----------|--------|----------|
+| **Ipad** | 100.0% | 1.000 | 1.000 | 1.000 | 1.000 |
+| **backpack** | 80.0% | 0.655 | 1.000 | 0.800 | 0.889 |
+| **hand** | 70.0% | 0.580 | 1.000 | 0.700 | 0.824 |
+| **phone** | 71.4% | 0.581 | 0.833 | 0.714 | 0.769 |
+| **wallet** | 100.0% | 0.994 | 0.929 | 1.000 | 0.963 |
+
+**Metrics Explanation:**
+- **Accuracy**: Percentage of correctly classified objects
+- **IoU**: Intersection over Union - measures bounding box overlap quality
+- **mAP@0.5**: Mean Average Precision at IoU threshold 0.5
+- **Precision**: Ratio of correct detections among all predictions
+- **Recall**: Ratio of detected objects among all ground truth objects
+- **F1 Score**: Harmonic mean of precision and recall
 
 ---
 
